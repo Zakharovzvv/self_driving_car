@@ -49,7 +49,7 @@ if (d2>max2) max2=d2;
 d1=map(analogRead(A0),min1,max1,0,1000);
 d2=map(analogRead(A1),min2,max2,0,1000);
 }
-
+//preg
 void preg(){
 int d1=analogRead(A0);
 int d2=analogRead(A1);
