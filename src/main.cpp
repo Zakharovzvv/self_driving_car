@@ -8,23 +8,23 @@
 const int SERVO_PIN = 13;
 
 // Устанавливаем номера пинов для управления моторами
-const int MOTOR_L1_PIN = 2;
-const int MOTOR_L2_PIN = 3;
-const int MOTOR_R1_PIN = 4;
-const int MOTOR_R2_PIN = 5;
+const int MOTOR_L_DIRECTION_PIN = 2;
+const int MOTOR_L_SPEED_PIN = 3;
+const int MOTOR_R_DIRECTION_PIN = 4;
+const int MOTOR_R_SPEED_PIN = 5;
 
 // Устанавливаем номера пинов для датчиков линии
-const int SENSOR_LEFT_PIN = A0;
-const int SENSOR_RIGHT_PIN = A1;
+const int IR_SENSOR_LEFT_PIN = A0;
+const int IR_SENSOR_RIGHT_PIN = A1;
 
 // Устанавливаем номер пина для ультразвукового датчика
-const int UZD_PIN = 9;
+const int UZ_F_SENSOR_PIN = 9;
 
 // Устанавливаем скорость мотора
 const int MOTOR_SPEED = 200;
 
 // Устанавливаем порог для датчика линии
-const int SENSOR_THRESHOLD = 500;
+const int IR_SENSOR_THRESHOLD = 500;
 
 // Устанавливаем коэффициент для ультразвукового датчика
 const float UZDSENCE = 0.01723;
@@ -39,6 +39,9 @@ const int SERVO_UP_POSITION = 80;
 
 // Устанавливаем стандартную задержку
 const int STANDARD_DELAY = 500;
+
+// Устанавливаем максимальную разрядность выхода на который подключены моторы
+const int PIN_MAX_BIT = 255;
 
 // Создание объекта для управления сервоприводом
 Servo servo;
@@ -59,22 +62,22 @@ enum Direction {
 void setup() {
     servo.attach(SERVO_PIN); // Привязываем сервопривод к пину
     servo.write(SERVO_DOWN_POSITION); // Устанавливаем начальное положение сервопривода
-    pinMode(MOTOR_L1_PIN, OUTPUT); // Устанавливаем режимы работы пинов
-    pinMode(MOTOR_L2_PIN, OUTPUT);
-    pinMode(MOTOR_R1_PIN, OUTPUT);
-    pinMode(MOTOR_R2_PIN, OUTPUT);
-    pinMode(UZD_PIN, INPUT);
-    pinMode(SENSOR_LEFT_PIN, INPUT);
-    pinMode(SENSOR_RIGHT_PIN, INPUT);
+    pinMode(MOTOR_L_DIRECTION_PIN, OUTPUT); // Устанавливаем режимы работы пинов
+    pinMode(MOTOR_L_SPEED_PIN, OUTPUT);
+    pinMode(MOTOR_R_DIRECTION_PIN, OUTPUT);
+    pinMode(MOTOR_R_SPEED_PIN, OUTPUT);
+    pinMode(UZ_F_SENSOR_PIN, INPUT);
+    pinMode(IR_SENSOR_LEFT_PIN, INPUT);
+    pinMode(IR_SENSOR_RIGHT_PIN, INPUT);
     Serial.begin(9600); // Инициализация серийного порта для вывода отладочной информации
 }
 
 // Функция для управления двигателями
 void move(int R, int L) {
-    digitalWrite(MOTOR_L1_PIN, L > 0 ? HIGH : LOW); // Управляем направлением левого мотора
-    analogWrite(MOTOR_L2_PIN, abs(L)); // Управляем скоростью левого мотора
-    digitalWrite(MOTOR_R1_PIN, R > 0 ? HIGH : LOW); // Управляем направлением правого мотора
-    analogWrite(MOTOR_R2_PIN, abs(R)); // Управляем скоростью правого мотора
+    digitalWrite(MOTOR_L_DIRECTION_PIN, L > 0 ? HIGH : LOW); // Управляем направлением левого мотора
+    analogWrite(MOTOR_L_SPEED_PIN, abs(L)); // Управляем скоростью левого мотора
+    digitalWrite(MOTOR_R_DIRECTION_PIN, R > 0 ? HIGH : LOW); // Управляем направлением правого мотора
+    analogWrite(MOTOR_R_SPEED_PIN, abs(R)); // Управляем скоростью правого мотора
 }
 
 // Функция для нормализации значений с датчиков
@@ -85,13 +88,13 @@ void normalize(int& d1, int& d2) {
     max1 = max(max1, d1);
     max2 = max(max2, d2);
     // Преобразовываем значения датчиков
-    d1 = map(analogRead(SENSOR_LEFT_PIN), min1, max1, 0, 1000);
-    d2 = map(analogRead(SENSOR_RIGHT_PIN), min2, max2, 0, 1000);
+    d1 = map(analogRead(IR_SENSOR_LEFT_PIN), min1, max1, 0, 1000);
+    d2 = map(analogRead(IR_SENSOR_RIGHT_PIN), min2, max2, 0, 1000);
 }
 
 // Проверяем, находится ли датчик на черной линии
 bool isSensorOnBlack(int sensorValue) {
-    return sensorValue < SENSOR_THRESHOLD;
+    return sensorValue < IR_SENSOR_THRESHOLD;
 }
 
 // Проверяем, находятся ли оба датчика на черной линии
@@ -112,18 +115,18 @@ void turn(Direction direction) {
         move(V, -V); // Поворачиваем влево
         delay(STANDARD_DELAY); // Ждем
         // Пока левый датчик не обнаружит черную линию
-        while (!isSensorOnBlack(analogRead(SENSOR_LEFT_PIN))) {
+        while (!isSensorOnBlack(analogRead(IR_SENSOR_LEFT_PIN))) {
             move(-V, V);
         }
         // Пока правый датчик не обнаружит черную линию
-        while (!isSensorOnBlack(analogRead(SENSOR_RIGHT_PIN))) {
+        while (!isSensorOnBlack(analogRead(IR_SENSOR_RIGHT_PIN))) {
             move(-V, V);
         }
     } else { // Если направление вправо
         move(-V, V); // Поворачиваем вправо
         delay(STANDARD_DELAY); // Ждем
         // Пока правый датчик не обнаружит черную линию
-        while (!isSensorOnBlack(analogRead(SENSOR_RIGHT_PIN))) {
+        while (!isSensorOnBlack(analogRead(IR_SENSOR_RIGHT_PIN))) {
             move(V, -V);
         }
     }
@@ -133,8 +136,8 @@ void cross();
 
 // Функция для управления движением по линии
 void preg() {
-    int d1 = analogRead(SENSOR_LEFT_PIN); // Читаем значение левого датчика
-    int d2 = analogRead(SENSOR_RIGHT_PIN); // Читаем значение правого датчика
+    int d1 = analogRead(IR_SENSOR_LEFT_PIN); // Читаем значение левого датчика
+    int d2 = analogRead(IR_SENSOR_RIGHT_PIN); // Читаем значение правого датчика
     normalize(d1, d2); // Нормализуем значения
     // Выводим значения датчиков в серийный порт для отладки
     Serial.print("Left Sensor: ");
@@ -146,24 +149,24 @@ void preg() {
     if (isOnCross(d1, d2)) {
         cross();
     } else { // Иначе регулируем направление движения
-        int E = d1 - d2;
-        int U = K * E;
-        int M1 = V + U;
-        int M2 = V - U;
-        M1 = constrain(M1, -MOTOR_SPEED, MOTOR_SPEED);
-        M2 = constrain(M2, -MOTOR_SPEED, MOTOR_SPEED);
-        move(M1, M2);
+        int E = d1 - d2; //Ошибка- разность показаний датчиков
+        int U = E * K; // Корректировка ошибки умножением на коэффициент
+        int leftMotorSpeed = MOTOR_SPEED + U; //Корректируем скорость и направление левого мотора
+        int rightMotorSpeed = MOTOR_SPEED- U; //Корректируем скорость и направление правого мотора
+        leftMotorSpeed = constrain(leftMotorSpeed, -PIN_MAX_BIT, PIN_MAX_BIT); // Приводим значение скорости к диапазону +/- MOTOR_SPEED
+        rightMotorSpeed = constrain(rightMotorSpeed, -PIN_MAX_BIT, PIN_MAX_BIT); // Приводим значение скорости к диапазону +/- MOTOR_SPEED
+        move(leftMotorSpeed, rightMotorSpeed); // Вызываем функцию движения и передаем ей скорректированные значения скоростей мотров
     }
 }
 
 // Функция для считывания данных с ультразвукового датчика
 int uzdF() {
-    digitalWrite(UZD_PIN, LOW); // Отправляем сигнал LOW на пин
+    digitalWrite(UZ_F_SENSOR_PIN, LOW); // Отправляем сигнал LOW на пин
     delayMicroseconds(2); // Ждем немного
-    digitalWrite(UZD_PIN, HIGH); // Отправляем сигнал HIGH на пин
+    digitalWrite(UZ_F_SENSOR_PIN, HIGH); // Отправляем сигнал HIGH на пин
     delayMicroseconds(10); // Ждем немного
-    digitalWrite(UZD_PIN, LOW); // Отправляем сигнал LOW на пин
-    int distance = UZDSENCE * pulseIn(UZD_PIN, HIGH); // Считываем расстояние
+    digitalWrite(UZ_F_SENSOR_PIN, LOW); // Отправляем сигнал LOW на пин
+    int distance = UZDSENCE * pulseIn(UZ_F_SENSOR_PIN, HIGH); // Считываем расстояние
     // Выводим расстояние в серийный порт для отладки
     Serial.print("UZD Distance: ");
     Serial.println(distance);
@@ -185,7 +188,7 @@ void banka() {
         delay(STANDARD_DELAY); // Ждем
         turn(LEFT); // Поворачиваем влево
         // Пока левый датчик не обнаружит черную линию
-        while (!isSensorOnBlack(analogRead(SENSOR_LEFT_PIN))) {
+        while (!isSensorOnBlack(analogRead(IR_SENSOR_LEFT_PIN))) {
             preg(); // Двигаемся по линии
         }
         move(0, 0); // Останавливаем робота
