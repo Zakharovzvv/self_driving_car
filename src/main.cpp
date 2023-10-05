@@ -112,22 +112,22 @@ void start() {
 void turn(Direction direction) {
     // Если направление влево
     if (direction == LEFT) {
-        move(V, -V); // Поворачиваем влево
+        move(MOTOR_SPEED, -MOTOR_SPEED); // Поворачиваем влево
         delay(STANDARD_DELAY); // Ждем
         // Пока левый датчик не обнаружит черную линию
         while (!isSensorOnBlack(analogRead(IR_SENSOR_LEFT_PIN))) {
-            move(-V, V);
+            move(-MOTOR_SPEED, MOTOR_SPEED);
         }
         // Пока правый датчик не обнаружит черную линию
         while (!isSensorOnBlack(analogRead(IR_SENSOR_RIGHT_PIN))) {
-            move(-V, V);
+            move(-MOTOR_SPEED, MOTOR_SPEED);
         }
     } else { // Если направление вправо
-        move(-V, V); // Поворачиваем вправо
+        move(-MOTOR_SPEED, MOTOR_SPEED); // Поворачиваем вправо
         delay(STANDARD_DELAY); // Ждем
         // Пока правый датчик не обнаружит черную линию
         while (!isSensorOnBlack(analogRead(IR_SENSOR_RIGHT_PIN))) {
-            move(V, -V);
+            move(MOTOR_SPEED, -MOTOR_SPEED);
         }
     }
 }
@@ -184,7 +184,7 @@ void banka() {
             servo.write(i); // Устанавливаем позицию сервопривода
             delay(10); // Ждем между шагами
         }
-        move(-V, -V); // Двигаемся назад
+        move(-MOTOR_SPEED, -MOTOR_SPEED); // Двигаемся назад
         delay(STANDARD_DELAY); // Ждем
         turn(LEFT); // Поворачиваем влево
         // Пока левый датчик не обнаружит черную линию
@@ -198,7 +198,7 @@ void banka() {
             servo.write(i); // Устанавливаем позицию сервопривода
             delay(10); // Ждем между шагами
         }
-        move(-V, -V); // Двигаемся назад
+        move(-MOTOR_SPEED, -MOTOR_SPEED); // Двигаемся назад
         delay(STANDARD_DELAY * 2); // Ждем
         turn(LEFT); // Поворачиваем влево
         step++; // Увеличиваем значение шага
@@ -209,7 +209,7 @@ void banka() {
 
 // Функция для обработки перекрестка
 void cross() {
-    move(V, V); // Двигаемся вперед
+    move(MOTOR_SPEED, MOTOR_SPEED); // Двигаемся вперед
     delay(STANDARD_DELAY); // Ждем
     move(0, 0); // Останавливаем робота
     delay(STANDARD_DELAY); // Ждем

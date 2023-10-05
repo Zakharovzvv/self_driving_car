@@ -1,5 +1,6 @@
 #include <Arduino.h>
 #include <Servo.h>
+
 Servo servo;
 
 int min1 = 500, min2 = 500, max1 = 600, max2 = 600;
