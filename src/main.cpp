@@ -60,7 +60,6 @@ void normalize(int& d1,int& d2){
   d2=map(analogRead(A1),min2,max2,0,1000);
 }
 
-// Функция коррекции движения на основе показаний датчиков
 void preg(){
   int d1=analogRead(A0);
   int d2=analogRead(A1);
