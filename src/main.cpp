@@ -58,6 +58,31 @@ enum Direction {
     RIGHT
 };
 
+// Первый шаблон для завершения рекурсии
+template <typename T>
+void debugPrintInternal(const char* name, T value) {
+    Serial.print(name);
+    Serial.print(": ");
+    Serial.println(value);
+}
+
+// Рекурсивный шаблон для обработки переменного количества аргументов
+template <typename T, typename... Args>
+void debugPrintInternal(const char* name, T value, Args... args) {
+    Serial.print(name);
+    Serial.print(": ");
+    Serial.print(value);
+    Serial.print(", ");
+    debugPrintInternal(args...);
+}
+
+// Функция для вывода отладочной информации
+template <typename... Args>
+void debugPrint(Args... args) {
+    debugPrintInternal(args...);
+    Serial.println();  // добавляем новую строку после вывода
+}
+
 // Функция настройки начальных параметров
 void setup() {
     servo.attach(SERVO_PIN); // Привязываем сервопривод к пину
@@ -140,10 +165,7 @@ void preg() {
     int d2 = analogRead(IR_SENSOR_RIGHT_PIN); // Читаем значение правого датчика
     normalize(d1, d2); // Нормализуем значения
     // Выводим значения датчиков в серийный порт для отладки
-    Serial.print("Left Sensor: ");
-    Serial.print(d1);
-    Serial.print(", Right Sensor: ");
-    Serial.println(d2);
+    debugPrint("Left Sensor: ", d1,"Right Sensor: ",d2);
 
     // Если робот на перекрестке, вызываем функцию cross()
     if (isOnCross(d1, d2)) {
