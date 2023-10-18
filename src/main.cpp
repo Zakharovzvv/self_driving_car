@@ -4,6 +4,10 @@
 #include "avr8-stub.h"
 #endif
 
+#if !DEBUG
+#include <Console.cpp>
+#endif
+
 #include <Arduino.h>
 #include <Servo.h>   // Подключение библиотеки для управления сервоприводами
 #include <NewPing.h> // Подключение библиотеки для управления датчиком расстояния
@@ -22,37 +26,27 @@ const int SERVO_PIN = 13;
 const int IR_SENSOR_L_PIN = A0;
 const int IR_SENSOR_R_PIN = A1;
 
-// Устанавливаем порог для датчика линии
-const int IR_SENSOR_THRESHOLD = 500;
-
 const float SOUND_SPEED = 0.034; // Скорость звука см/сек
-
-// Устанавливаем расстояния для датчика
-const int UZD_OBSTACLE_DISTANCE = 6;
-const int UZD_CROSS_DISTANCE = 30;
-
-// Устанавливаем позиции сервопривода
-const int SERVO_OPEN_POSITION = 30;
-const int SERVO_CLOSE_POSITION = 80;
-
-// Устанавливаем стандартную задержку
-const int STANDARD_DELAY = 500;
 
 const int PIN_MAX_BIT = 250;     // Устанавливаем максимальную разрядность выхода на который подключены моторы
 const int UZ_MAX_DISTANCE = 200; // Устанавливаем максимальное расстояние до объекта
-
-const int LINES_FOR_TUNE = 2; // Количество чкрных линий, которые надо увидеть датчику при повороте машины
 
 // Создание объекта для управления сервоприводом
 Servo servo;
 NewPing sonar(9, 10); // NewPing setup of pins and maximum distance.
 
 // Инициализация переменных
+int blackWhiteBorder= 500; //Значение ИК датчика, выше которого считаем, что он набелом, ниже на черном
 int baseSpeed = 60; // Базовая скорость моторов
 float pregK = 0.3;  // Коэффициент чувствительности П регулятора
 int minIRL = 500, minIRR = 500, maxIRL = 600, maxIRR = 600;
 int step = 0;
 int crossCount = 0; // Количество пройденных перекрестков
+int servoOpenPosition=30; //Угол сервопривода в открытом положении
+int servoClosePosition=90; //Угол сервопривода в закрытом положении
+int baseDelay=500; //Задержка выполнения шага
+int distanceToTakeBotle = 6; // Расстояние до банки при котором нужно закрыть сервопривод (взять банку)
+int distanceToCheckBotle=30; //Расстояние до банки, стоящей на перекрестке чтобы определить, что банка есть
 
 // Определение направлений для функции поворота
 enum Direction
@@ -67,35 +61,6 @@ enum ServoState
     CLOSE
 };
 
-#if !DEBUG
-// Первый шаблон для завершения рекурсии
-template <typename T>
-void consoleInternal(const char *name, T value)
-{
-    Serial.print(name);
-    Serial.print(": ");
-    Serial.println(value);
-}
-
-// Рекурсивный шаблон для обработки переменного количества аргументов
-template <typename T, typename... Args>
-void consoleInternal(const char *name, T value, Args... args)
-{
-    Serial.print(name);
-    Serial.print(": ");
-    Serial.print(value);
-    Serial.print(", ");
-    consoleInternal(args...);
-}
-
-// Функция для вывода отладочной информации
-template <typename... Args>
-void console(Args... args)
-{
-    consoleInternal(args...);
-    Serial.println(); // добавляем новую строку после вывода
-}
-#endif
 // Функция настройки начальных параметров
 void setup()
 {
@@ -110,7 +75,7 @@ void setup()
     pinMode(SERVO_PIN, OUTPUT);
 
     servo.attach(SERVO_PIN);          // Привязываем сервопривод к пину
-    servo.write(SERVO_OPEN_POSITION); // Устанавливаем начальное положение сервопривода
+    servo.write(servoOpenPosition); // Устанавливаем начальное положение сервопривода
 
     // initialize GDB stub
 #if DEBUG
@@ -158,7 +123,7 @@ int getIRSensorValue(int sensor)
 // Проверяем, находится ли датчик на черной линии
 bool isSensorOnBlack(int sensorValue)
 {
-    return sensorValue < IR_SENSOR_THRESHOLD;
+    return sensorValue < blackWhiteBorder;
 }
 // Проверяем, что оба датчика на черной линии. Значит мы на перекрестке
 bool isOnCros()
@@ -182,7 +147,7 @@ void preg()
 {
     int d1 = getIRSensorValue(IR_SENSOR_L_PIN); // Читаем значение левого датчика
     int d2 = getIRSensorValue(IR_SENSOR_R_PIN); // Читаем значение правого датчика
-
+ 
     int E = d1 - d2;     // Ошибка- разность показаний датчиков
     float U = E * pregK; // Корректировка ошибки умножением на коэффициент
 
@@ -195,7 +160,7 @@ void preg()
     drive(leftMotorSpeed, rightMotorSpeed); // Вызываем функцию движения и передаем ей скорректированные значения скоростей мотров
 
     // Выводим значения датчиков в серийный порт для отладки
-    //    console("Left Sensor: ", d1, "Right Sensor: ", d2);
+        console("Left Sensor: ", d1, "Right Sensor: ", d2);
 }
 
 // Функция для обработки перекрестка
@@ -207,8 +172,8 @@ void driveCross()
         drive(baseSpeed, baseSpeed);
     }
 
-    // drive(baseSpeed, baseSpeed, STANDARD_DELAY); // Двигаемся вперед
-    // drive(0, 0, STANDARD_DELAY);                 // Останавливаем робота
+    // drive(baseSpeed, baseSpeed, baseDelay); // Двигаемся вперед
+    // drive(0, 0, baseDelay);                 // Останавливаем робота
 }
 
 void uzdImpulse(int pin)
@@ -241,49 +206,65 @@ void moveServo(ServoState state)
 
     if (state == OPEN)
     {
-        for (int i = SERVO_OPEN_POSITION; i < SERVO_CLOSE_POSITION; i++)
+        for (int i = servoOpenPosition; i < servoClosePosition; i++)
         {
             servo.write(i); // Устанавливаем позицию сервопривода
             delay(10);      // Ждем между шагами
 #if !DEBUG
-            console("servo=", i);
+ //           console("servo=", i);
 #endif
         }
     }
     else
     {
-        for (int i = SERVO_CLOSE_POSITION; i > SERVO_OPEN_POSITION; i--)
+        for (int i = servoClosePosition; i > servoOpenPosition; i--)
         {
             servo.write(i); // Устанавливаем позицию сервопривода
             delay(10);      // Ждем между шагами
 #if !DEBUG
-            console("servo=", i);
+ //           console("servo=", i);
 #endif
         }
     }
 }
 
-// Функция для поворота
-void turn(Direction direction)
+/// Функция для поворота
+void turn(Direction direction,int linesCount)
 {
-    int linesCrossed = 0; // Переменная для подсчета количества линий, которые пересек датчик
-    bool flag = true;     // Флаг который переключается каждый раз, когда мв пересекаем границу черного/белого
+    bool lastColor;     
+    bool currentColor;     
+    float speedGain=1.5;  
 
+    int speedMotorL= direction == LEFT ? baseSpeed *(-1)*speedGain : baseSpeed*speedGain;
+    int speedMotorR=speedMotorL*(-1);
+    int IRSensor=direction == LEFT ? IR_SENSOR_R_PIN : IR_SENSOR_L_PIN;
+ #if !DEBUG
+    console("baseSpeed",baseSpeed);
+    console("LS",speedMotorL,"RS",speedMotorR,"IRSensor",IRSensor);   
+ #endif  
+    
+    currentColor = isSensorOnBlack(getIRSensorValue(IRSensor));
+    lastColor=currentColor;
+    int linesCrossed=currentColor==true?1:0; // Переменная для подсчета количества линий, которые пересек датчик
+    
+    drive(speedMotorL, speedMotorR);
+    
     do
     {
-        drive(baseSpeed * direction == LEFT ? -1 : 1, baseSpeed * direction == LEFT ? 1 : -1);
-        bool iROnBlack = isSensorOnBlack(getIRSensorValue(direction == LEFT ? IR_SENSOR_R_PIN : IR_SENSOR_L_PIN));
-        if (iROnBlack && flag)
+        currentColor= isSensorOnBlack(getIRSensorValue(IRSensor));
+        if (currentColor != lastColor)
         {
             linesCrossed++;
-            flag = !flag;
-        }
-        else if (!iROnBlack)
-        {
-            flag = !flag;
+            lastColor=currentColor;
         };
+ #if !DEBUG
 
-    } while (linesCrossed < LINES_FOR_TUNE);
+        console("currentColor",currentColor,"lastColor",lastColor);
+        console("linesCrossed",linesCrossed);
+        delay(5000);
+ #endif  
+
+    } while (linesCrossed < linesCount);
     drive(0, 0);
 }
 
@@ -292,42 +273,19 @@ void takeBanka()
 {
 
     // Едем пока не приблизимся к банке на расстояние захвата
-    while (getForwardDistance() > UZD_OBSTACLE_DISTANCE)
+    while (getForwardDistance() > distanceToTakeBotle)
     {
         preg();
     };
 
-    drive(0, 0, STANDARD_DELAY); // Останавливаем робота
+    drive(0, 0, baseDelay); // Останавливаем робота
 
     moveServo(CLOSE); //Берем банку
 
-    drive(-baseSpeed, -baseSpeed, STANDARD_DELAY); // Двигаемся назад
-    turn(LEFT);                                    // Поворачиваем влево
+    drive(-baseSpeed, -baseSpeed, baseDelay); // Двигаемся назад
+    turn(LEFT,3);                                    // Поворачиваем влево
 }
-
-// Основной цикл программы
-void loop()
-{
-    // turn(LEFT);
-    // while (true)
-    // {
-    //     /* code */
-    // }
-
-     preg(); //Едем по линии
-
-    // Обрабатываем перекрестки
-    //  if (isOnCros())
-    //  {
-    //      crossCount++;
-    //      driveCross();
-    //  };
-    //Если увидели банку - берем ее
-    if (getForwardDistance() < UZD_OBSTACLE_DISTANCE*1.5){
-        takeBanka();
-    }
-}
-
+//################## tests ########################################
 void check()
 {
     drive(baseSpeed, baseSpeed, 500);
@@ -336,3 +294,34 @@ void check()
     moveServo(CLOSE);
     moveServo(OPEN);
 }
+void testServo(){
+        if (getForwardDistance() < distanceToTakeBotle){
+         moveServo(CLOSE); //Берем банку
+         delay(4000);
+          moveServo(OPEN); //Отпускаем банку
+          delay(4000);
+    }
+}
+//################################################################
+// Основной цикл программы
+void loop()
+{
+
+   //  preg(); //Едем по линии
+    testServo();
+    // //Обрабатываем перекрестки
+    //  if (isOnCros())
+    //  {
+    //      crossCount++;
+    //      driveCross();
+    //  };
+    // //Если увидели банку - берем ее
+
+    //     while (true)
+    //     {
+    //         /* code */
+    //     }
+        
+    // }
+}
+
