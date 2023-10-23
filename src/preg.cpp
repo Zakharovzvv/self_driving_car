@@ -1,19 +1,26 @@
 #include <Arduino.h>
-#include <header.h>
-#include <go.h>
+#include <Header.h>
+#include <Drive.h>
+#include <Console.h>
+#include <IR_Sensor.h>
 
-void preg() {
-  int d1 = analogRead(A0);
-  int d2 = analogRead(A1);
-  if (d1 < min1) min1 = d1;
-  if (d2 < min2) min2 = d2;
-  if (d1 > max1) max1 = d1;
-  if (d2 > max2) max2 = d2;
-  d1 = map(analogRead(A0), min1, max1, 0, 1000);
-  d2 = map(analogRead(A1), min2, max2, 0, 1000);
-  int E = d1 - d2;
-  float K = 0.4;
-  int M1 = V + E * K; M1 = constrain(M1, -255, 255);
-  int M2 = V - E * K; M2 = constrain(M2, -255, 255);
-  go(M1, M2);
+// Функция для управления движением по линии
+void preg()
+{
+    int d1 = getIRSensorValue(IR_SENSOR_L_PIN); // Читаем значение левого датчика
+    int d2 = getIRSensorValue(IR_SENSOR_R_PIN); // Читаем значение правого датчика
+ 
+    int E = d1 - d2;     // Ошибка- разность показаний датчиков
+    float U = E * pregK; // Корректировка ошибки умножением на коэффициент
+
+    int leftMotorSpeed = baseSpeed + U;  // Корректируем скорость и направление левого мотора
+    int rightMotorSpeed = baseSpeed - U; // Корректируем скорость и направление правого мотора
+
+    leftMotorSpeed = constrain(leftMotorSpeed, -PIN_MAX_BIT, PIN_MAX_BIT);   // Приводим значение скорости к диапазону +/- MOTOR_SPEED
+    rightMotorSpeed = constrain(rightMotorSpeed, -PIN_MAX_BIT, PIN_MAX_BIT); // Приводим значение скорости к диапазону +/- MOTOR_SPEED
+
+    drive(leftMotorSpeed, rightMotorSpeed); // Вызываем функцию движения и передаем ей скорректированные значения скоростей мотров
+
+    // Выводим значения датчиков в серийный порт для отладки
+        console("Left Sensor: ", d1, "Right Sensor: ", d2);
 }

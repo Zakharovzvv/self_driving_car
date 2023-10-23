@@ -1,5 +1,5 @@
-#ifndef preg_h
-#define preg_h
+#ifndef Preg_h
+#define Preg_h
 
 void preg();
 
