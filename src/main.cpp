@@ -9,7 +9,6 @@
 #endif
 
 #include <Arduino.h>
-#include <Servo.h>   // Подключение библиотеки для управления сервоприводами
 
 #include <Drive.h>
 #include <Header.h>
@@ -19,6 +18,25 @@
 #include <IR_Sensor.h>
 #include <InitTests.h>
 
+
+
+const int MOTOR_L_DIRECTION_PIN = 2;
+const int MOTOR_L_SPEED_PIN = 3;
+const int MOTOR_R_DIRECTION_PIN = 4;
+const int MOTOR_R_SPEED_PIN = 5;
+// Устанавливаем номер пина для ультразвукового датчика
+const int UZ_F_TRIGGER_PIN = 9;
+const int UZ_F_ECHO_PIN = 10;
+// Устанавливаем номер пина для сервопривода
+const int SERVO_PIN = 13;
+// Устанавливаем номера пинов для датчиков линии
+const int IR_SENSOR_L_PIN = A0;
+const int IR_SENSOR_R_PIN = A1;
+
+const float SOUND_SPEED = 0.034; // Скорость звука см/сек
+
+const int PIN_MAX_BIT = 250;     // Устанавливаем максимальную разрядность выхода на который подключены моторы
+const int UZ_MAX_DISTANCE = 200; // Устанавливаем максимальное расстояние до объекта
 
 // Инициализация переменных
 int blackWhiteBorder= 500; //Значение ИК датчика, выше которого считаем, что он набелом, ниже на черном
@@ -47,8 +65,7 @@ void setup()
     pinMode(IR_SENSOR_R_PIN, INPUT);
     pinMode(SERVO_PIN, OUTPUT);
 
-    servo.attach(SERVO_PIN);          // Привязываем сервопривод к пину
-    servo.write(servoOpenPosition); // Устанавливаем начальное положение сервопривода
+initServo();
 
     // initialize GDB stub
 #if DEBUG
@@ -58,20 +75,6 @@ void setup()
 #endif
 }
 
-
-
-//################## tests ########################################
-void check()
-{
-    drive(baseSpeed, baseSpeed, 500);
-    drive(0, 0, 0);
-    getDistance();
-    moveServo(CLOSE);
-    moveServo(OPEN);
-}
-
-//################################################################
-// Основной цикл программы
 void loop()
 {
 

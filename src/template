@@ -1,279 +1,279 @@
-#include <Arduino.h>
-#include <Servo.h>
+// #include <Arduino.h>
+// #include <Servo.h>
 
-Servo servo;
+// Servo servo;
 
-int min1 = 500, min2 = 500, max1 = 600, max2 = 600;
-int V = 200;
-int N = 0;
-int Fin = 0;
-int Step = 0;
-bool flagB = 0;
+// int min1 = 500, min2 = 500, max1 = 600, max2 = 600;
+// int V = 200;
+// int N = 0;
+// int Fin = 0;
+// int Step = 0;
+// bool flagB = 0;
 
-void setup()
-{
-    servo.attach(13);
-    servo.write(30);
-    pinMode(2, OUTPUT);
-    pinMode(3, OUTPUT);
-    pinMode(4, OUTPUT);
-    pinMode(5, OUTPUT);
-    pinMode(7, OUTPUT);
-    pinMode(9, OUTPUT);
-    pinMode(8, INPUT);
-    pinMode(10, INPUT);
-    pinMode(A0, INPUT);
-    pinMode(A1, INPUT);
-    pinMode(A2, INPUT);
-    Serial.begin(9600);
-}
-void mov(int L, int R)
-{
-    if (L > 0)
-    {
-        digitalWrite(2, 1);
-        analogWrite(3, L);
-    }
-    else
-    {
-        digitalWrite(2, 0);
-        analogWrite(3, abs(L));
-    }
-    if (R > 0)
-    {
-        digitalWrite(4, 1);
-        analogWrite(5, R);
-    }
-    else
-    {
-        digitalWrite(4, 0);
-        analogWrite(5, abs(R));
-    }
-}
-void preg()
-{
-    int d1 = analogRead(A0);
-    int d2 = analogRead(A1);
-    if (d1 < min1)
-        min1 = d1;
-    if (d2 < min2)
-        min2 = d2;
-    if (d1 > max1)
-        max1 = d1;
-    if (d2 > max2)
-        max2 = d2;
-    d1 = map(analogRead(A0), min1, max1, 0, 1000);
-    d2 = map(analogRead(A1), min2, max2, 0, 1000);
-    int E = d1 - d2;
-    float K = 0.4;
-    int M1 = V + E * K;
-    M1 = constrain(M1, -255, 255);
-    int M2 = V - E * K;
-    M2 = constrain(M2, -255, 255);
-    mov(M1, M2);
-}
-void left()
-{
-    mov(-V, V);
-    delay(1000);
-    while (analogRead(A0) > 500)
-        mov(-V, V);
-    while (analogRead(A0) < 500)
-        mov(-V, V);
-    while (analogRead(A1) > 500)
-        mov(-V, V);
-}
-void right()
-{
-    mov(V, -V);
-    delay(1000);
-    while (analogRead(A0) > 500)
-        mov(V, -V);
-}
-int uzdL()
-{
-    digitalWrite(7, 0);
-    delayMicroseconds(2);
-    digitalWrite(7, 1);
-    delayMicroseconds(10);
-    digitalWrite(7, 0);
-    return 0.01723 * pulseIn(8, 1);
-}
-int uzdF()
-{
-    digitalWrite(9, 0);
-    delayMicroseconds(2);
-    digitalWrite(9, 1);
-    delayMicroseconds(10);
-    digitalWrite(9, 0);
-    return 0.01723 * pulseIn(10, 1);
-}
-void banka()
-{
-    if (flagB == 0)
-    {
-        if (uzdF() < 5 || analogRead(A2) > 500)
-        {
-            mov(0, 0);
-            delay(1000);
-            for (int i = 30; i < 80; i++)
-            {
-                servo.write(i);
-                delay(10);
-            }
-            right();
-            flagB = 1;
-        }
-        else
-        {
-            preg();
-        }
-    }
-    else
-    {
-        if (analogRead(A0) < 500 && analogRead(A1) < 500)
-        {
-            mov(V, V);
-            delay(400);
-            mov(0, 0);
-            delay(1000);
-            while (analogRead(A2) < 500)
-            {
-                preg();
-            }
-            mov(V, V);
-            delay(400);
-            mov(0, 0);
-            delay(1000);
-            for (int i = 80; i > 30; i--)
-            {
-                servo.write(i);
-                delay(10);
-            }
-            mov(-V, -V);
-            delay(1000);
-            left();
-            mov(0, 0);
-            delay(1);
-            Step++;
-            N = 0;
-            // while(1){delay(10);}
-        }
-        else
-            preg();
-    }
-}
-void finish()
-{
-    if (analogRead(A0) < 500 && analogRead(A1) < 500)
-    {
-        mov(V, V);
-        delay(600);
-        mov(0, 0);
-        delay(1);
-        if (N < 1)
-        {
-            N++;
-            left();
-        }
-        else if (N < Fin + 1)
-        {
-            N++;
-        }
-        else if (N == Fin + 1)
-        {
-            right();
-            while (analogRead(A2) < 500)
-            {
-                preg();
-            }
-            mov(V, V);
-            delay(1700);
-            mov(0, 0);
-            delay(1000);
-            while (1)
-            {
-                delay(10);
-            }
-        }
-    }
-    else
-        preg();
-}
-void cross()
-{
-    if (analogRead(A0) < 500 && analogRead(A1) < 500)
-    {
-        mov(V, V);
-        delay(600);
-        mov(0, 0);
-        delay(1);
-        if (N < 1)
-        {
-            N++;
-        }
-        else if (N < 3)
-        {
-            N++;
-            left();
-            mov(0, 0);
-            delay(100);
-        }
-        else if (N == 3)
-        {
-            right();
-            mov(0, 0);
-            delay(100);
-            Step++;
-            N = 0;
-            // while(1){delay(10);
-        }
-    }
-    else
-        preg();
-}
-void start()
-{
-    if (analogRead(A0) < 500 && analogRead(A1) < 500)
-    {
-        mov(V, V);
-        delay(400);
-        if (uzdL() < 30)
-            Fin = N;
-        mov(0, 0);
-        delay(1);
-        if (N < 3)
-            N++;
-        else
-        {
-            N = 0;
-            left();
-            left();
-            mov(0, 0);
-            delay(1);
-            Step++;
-        }
-    }
-    else
-        preg();
-}
+// void setup()
+// {
+//     servo.attach(13);
+//     servo.write(30);
+//     pinMode(2, OUTPUT);
+//     pinMode(3, OUTPUT);
+//     pinMode(4, OUTPUT);
+//     pinMode(5, OUTPUT);
+//     pinMode(7, OUTPUT);
+//     pinMode(9, OUTPUT);
+//     pinMode(8, INPUT);
+//     pinMode(10, INPUT);
+//     pinMode(A0, INPUT);
+//     pinMode(A1, INPUT);
+//     pinMode(A2, INPUT);
+//     Serial.begin(9600);
+// }
+// void mov(int L, int R)
+// {
+//     if (L > 0)
+//     {
+//         digitalWrite(2, 1);
+//         analogWrite(3, L);
+//     }
+//     else
+//     {
+//         digitalWrite(2, 0);
+//         analogWrite(3, abs(L));
+//     }
+//     if (R > 0)
+//     {
+//         digitalWrite(4, 1);
+//         analogWrite(5, R);
+//     }
+//     else
+//     {
+//         digitalWrite(4, 0);
+//         analogWrite(5, abs(R));
+//     }
+// }
+// void preg()
+// {
+//     int d1 = analogRead(A0);
+//     int d2 = analogRead(A1);
+//     if (d1 < min1)
+//         min1 = d1;
+//     if (d2 < min2)
+//         min2 = d2;
+//     if (d1 > max1)
+//         max1 = d1;
+//     if (d2 > max2)
+//         max2 = d2;
+//     d1 = map(analogRead(A0), min1, max1, 0, 1000);
+//     d2 = map(analogRead(A1), min2, max2, 0, 1000);
+//     int E = d1 - d2;
+//     float K = 0.4;
+//     int M1 = V + E * K;
+//     M1 = constrain(M1, -255, 255);
+//     int M2 = V - E * K;
+//     M2 = constrain(M2, -255, 255);
+//     mov(M1, M2);
+// }
+// void left()
+// {
+//     mov(-V, V);
+//     delay(1000);
+//     while (analogRead(A0) > 500)
+//         mov(-V, V);
+//     while (analogRead(A0) < 500)
+//         mov(-V, V);
+//     while (analogRead(A1) > 500)
+//         mov(-V, V);
+// }
+// void right()
+// {
+//     mov(V, -V);
+//     delay(1000);
+//     while (analogRead(A0) > 500)
+//         mov(V, -V);
+// }
+// int uzdL()
+// {
+//     digitalWrite(7, 0);
+//     delayMicroseconds(2);
+//     digitalWrite(7, 1);
+//     delayMicroseconds(10);
+//     digitalWrite(7, 0);
+//     return 0.01723 * pulseIn(8, 1);
+// }
+// int uzdF()
+// {
+//     digitalWrite(9, 0);
+//     delayMicroseconds(2);
+//     digitalWrite(9, 1);
+//     delayMicroseconds(10);
+//     digitalWrite(9, 0);
+//     return 0.01723 * pulseIn(10, 1);
+// }
+// void banka()
+// {
+//     if (flagB == 0)
+//     {
+//         if (uzdF() < 5 || analogRead(A2) > 500)
+//         {
+//             mov(0, 0);
+//             delay(1000);
+//             for (int i = 30; i < 80; i++)
+//             {
+//                 servo.write(i);
+//                 delay(10);
+//             }
+//             right();
+//             flagB = 1;
+//         }
+//         else
+//         {
+//             preg();
+//         }
+//     }
+//     else
+//     {
+//         if (analogRead(A0) < 500 && analogRead(A1) < 500)
+//         {
+//             mov(V, V);
+//             delay(400);
+//             mov(0, 0);
+//             delay(1000);
+//             while (analogRead(A2) < 500)
+//             {
+//                 preg();
+//             }
+//             mov(V, V);
+//             delay(400);
+//             mov(0, 0);
+//             delay(1000);
+//             for (int i = 80; i > 30; i--)
+//             {
+//                 servo.write(i);
+//                 delay(10);
+//             }
+//             mov(-V, -V);
+//             delay(1000);
+//             left();
+//             mov(0, 0);
+//             delay(1);
+//             Step++;
+//             N = 0;
+//             // while(1){delay(10);}
+//         }
+//         else
+//             preg();
+//     }
+// }
+// void finish()
+// {
+//     if (analogRead(A0) < 500 && analogRead(A1) < 500)
+//     {
+//         mov(V, V);
+//         delay(600);
+//         mov(0, 0);
+//         delay(1);
+//         if (N < 1)
+//         {
+//             N++;
+//             left();
+//         }
+//         else if (N < Fin + 1)
+//         {
+//             N++;
+//         }
+//         else if (N == Fin + 1)
+//         {
+//             right();
+//             while (analogRead(A2) < 500)
+//             {
+//                 preg();
+//             }
+//             mov(V, V);
+//             delay(1700);
+//             mov(0, 0);
+//             delay(1000);
+//             while (1)
+//             {
+//                 delay(10);
+//             }
+//         }
+//     }
+//     else
+//         preg();
+// }
+// void cross()
+// {
+//     if (analogRead(A0) < 500 && analogRead(A1) < 500)
+//     {
+//         mov(V, V);
+//         delay(600);
+//         mov(0, 0);
+//         delay(1);
+//         if (N < 1)
+//         {
+//             N++;
+//         }
+//         else if (N < 3)
+//         {
+//             N++;
+//             left();
+//             mov(0, 0);
+//             delay(100);
+//         }
+//         else if (N == 3)
+//         {
+//             right();
+//             mov(0, 0);
+//             delay(100);
+//             Step++;
+//             N = 0;
+//             // while(1){delay(10);
+//         }
+//     }
+//     else
+//         preg();
+// }
+// void start()
+// {
+//     if (analogRead(A0) < 500 && analogRead(A1) < 500)
+//     {
+//         mov(V, V);
+//         delay(400);
+//         if (uzdL() < 30)
+//             Fin = N;
+//         mov(0, 0);
+//         delay(1);
+//         if (N < 3)
+//             N++;
+//         else
+//         {
+//             N = 0;
+//             left();
+//             left();
+//             mov(0, 0);
+//             delay(1);
+//             Step++;
+//         }
+//     }
+//     else
+//         preg();
+// }
 
-void loop()
-{
+// void loop()
+// {
 
-    switch (Step)
-    {
-    case 0:
-        start();
-        break;
-    case 1:
-        cross();
-        break;
-    case 2:
-        banka();
-        break;
-    case 3:
-        finish();
-        break;
-    }
-}
+//     switch (Step)
+//     {
+//     case 0:
+//         start();
+//         break;
+//     case 1:
+//         cross();
+//         break;
+//     case 2:
+//         banka();
+//         break;
+//     case 3:
+//         finish();
+//         break;
+//     }
+// }

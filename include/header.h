@@ -1,7 +1,6 @@
 #ifndef HEADER_H
 #define HEADER_H
-#include <Arduino.h>
-#include <Servo.h>   // Подключение библиотеки для управления сервоприводами
+
 
 extern int V;
 extern int min1;
@@ -10,23 +9,23 @@ extern int min2;
 extern int max2;
 
 // Устанавливаем номера пинов для управления моторами
-extern const int MOTOR_L_DIRECTION_PIN = 2;
-extern const int MOTOR_L_SPEED_PIN = 3;
-extern const int MOTOR_R_DIRECTION_PIN = 4;
-extern const int MOTOR_R_SPEED_PIN = 5;
+extern const int MOTOR_L_DIRECTION_PIN;
+extern const int MOTOR_L_SPEED_PIN;
+extern const int MOTOR_R_DIRECTION_PIN;
+extern const int MOTOR_R_SPEED_PIN;
 // Устанавливаем номер пина для ультразвукового датчика
-extern const int UZ_F_TRIGGER_PIN = 9;
-extern const int UZ_F_ECHO_PIN = 10;
+extern const int UZ_F_TRIGGER_PIN;
+extern const int UZ_F_ECHO_PIN ;
 // Устанавливаем номер пина для сервопривода
-extern const int SERVO_PIN = 13;
+extern const int SERVO_PIN ;
 // Устанавливаем номера пинов для датчиков линии
-extern const int IR_SENSOR_L_PIN = A0;
-extern const int IR_SENSOR_R_PIN = A1;
+extern const int IR_SENSOR_L_PIN;
+extern const int IR_SENSOR_R_PIN;
 
-extern const float SOUND_SPEED = 0.034; // Скорость звука см/сек
+extern const float SOUND_SPEED; // Скорость звука см/сек
 
-extern const int PIN_MAX_BIT = 250;     // Устанавливаем максимальную разрядность выхода на который подключены моторы
-extern const int UZ_MAX_DISTANCE = 200; // Устанавливаем максимальное расстояние до объекта
+extern const int PIN_MAX_BIT;     // Устанавливаем максимальную разрядность выхода на который подключены моторы
+extern const int UZ_MAX_DISTANCE; // Устанавливаем максимальное расстояние до объекта
 
 // Инициализация переменных
 extern int blackWhiteBorder; //Значение ИК датчика, выше которого считаем, что он набелом, ниже на черном
@@ -54,6 +53,6 @@ enum ServoState
     CLOSE 
 };
 
-Servo servo;
+
 
 #endif

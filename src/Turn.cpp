@@ -17,7 +17,7 @@ void turn(Direction direction,int linesCount)
     int IRSensor=direction == LEFT ? IR_SENSOR_R_PIN : IR_SENSOR_L_PIN;
  #if !DEBUG
     console("baseSpeed",baseSpeed);
-    console("LS",speedMotorL,"RS",speedMotorR,"IRSensor",IRSensor);   
+   console("LS",speedMotorL,"RS",speedMotorR,"IRSensor",IRSensor);   
  #endif  
     
     currentColor = isSensorOnBlack(getIRSensorValue(IRSensor));

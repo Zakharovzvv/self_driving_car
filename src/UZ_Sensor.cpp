@@ -23,7 +23,7 @@ int getDistance()
     int distance = sonar.ping_cm(); // Считаем расстояние до объекта
 
 #if !DEBUG
-    console("d=", distance);
+  // console("d=", distance);
 #endif
 
     return distance;
