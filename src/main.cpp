@@ -2,11 +2,10 @@
 
 #if DEBUG
 #include "avr8-stub.h"
-#endif
-
-#if !DEBUG
+#else
 #include <Console.cpp>
 #endif
+
 
 #include <Arduino.h>
 
@@ -65,7 +64,7 @@ void setup()
     pinMode(IR_SENSOR_R_PIN, INPUT);
     pinMode(SERVO_PIN, OUTPUT);
 
-initServo();
+    initServo();
 
     // initialize GDB stub
 #if DEBUG
